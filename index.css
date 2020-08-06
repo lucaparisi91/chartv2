@@ -1,0 +1,29 @@
+.axis line
+{
+    stroke: black;
+    stroke-width: 1px;
+};
+
+#plot
+{
+    position: relative;
+}
+
+#plot svg
+{
+    position: absolute;
+    left : 0px;
+    top: 0px;
+}
+
+ .tick > .inner 
+{
+    stroke : #e8e6e4;
+    stroke-dasharray : 8;
+}
+
+input
+{
+    width: 80px;
+}
+
