@@ -5,9 +5,10 @@ import * as THREE from 'three';
 import ThreeCanvas from './ThreeCanvas';
 import ScatterPlot from './ScatterPlot.js';
 import Axis from './Axis.js';
-import { Slider , Row, Col, InputNumber, Input} from 'antd';
+import { Slider , Row, Col, InputNumber, Input, Button, Switch } from 'antd';
 import 'antd/dist/antd.css';
 import { SketchPicker } from 'react-color';
+import { LoadingOutlined } from '@ant-design/icons';
 
 
 const createMockData = ( N ) => 
@@ -58,7 +59,7 @@ const useScale =({length, axis, range=[-0.5,0.5]}) =>
 
 }
 
-const RangeInput= ({range,setRange})=>{
+const RangeInput= ({range,setRange,min,max})=>{
 
   return <div className="rangeInput">
     <Row gutter={10}>
@@ -68,7 +69,7 @@ const RangeInput= ({range,setRange})=>{
   onChange={(e)=>{setRange([e.target.value,range[1]])}} /> 
   </Col>
   <Col>
-  <Slider range min={ -0.5} max={0.5} value={range} style={{width:200}} onChange={setRange} step={0.01}/>
+  <Slider range min={min} max={max} value={range} style={{width:200}} onChange={setRange} step={0.01}/>
   </Col>
   <Col>
 <input type="number" 
@@ -79,9 +80,10 @@ const RangeInput= ({range,setRange})=>{
   </div>;
 };
 
-const AxisControl = ({axis,range,setRange}) =>
-{
 
+const AxisControl = ({axis,range,setRange,lim, showGrid = false , setShowGid = ()=>{}}) =>
+{
+  
   return <div className="axisControl">
     <Row>
       <Col><h2> { axis} axis</h2> </Col>
@@ -89,8 +91,14 @@ const AxisControl = ({axis,range,setRange}) =>
     </Row>
     <Row gutter={10}>
       <Col>Range: </Col>
-      <Col> <RangeInput range={range} setRange={setRange}  /> </Col>
+      <Col> <RangeInput min={lim[0]} max={lim[1]}  range={range} setRange={setRange}  /> </Col>
        </Row>
+    <Row gutter= {10} >
+      <Col>Show grid: </Col> 
+      <Col>  
+      <Switch checked={showGrid} onChange = {(checked)=>{setShowGid(checked)} } />
+       </Col>
+      </Row>
 
   </div>
 
@@ -154,8 +162,48 @@ const StyleControl = ({mark,setMark,alpha,setAlpha})=>{
 }
 
 
+const useData = (initialData,x,y) =>
+{
+  const [loadedData, setLoadedData] = useState(initialData);
 
-const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
+
+  const [xLim,setXLim] = useState([-0.5,0.5]);
+  const [yLim,setYLim] = useState([-0.5,0.5]);
+
+   useEffect(()=>{
+
+    if (loadedData !== [] )
+    {
+
+
+      let xExtent = d3.extent(loadedData,(d)=>{return parseFloat(d[x])}) ;
+      let yExtent = d3.extent(loadedData,(d)=>{return parseFloat(d[y])}) ;
+      
+
+      if ( xExtent.includes(undefined) )
+      {
+        xExtent = [-0.5,0.5];
+      }
+
+      if ( yExtent.includes(undefined) )
+      {
+        yExtent = [-0.5,0.5];
+      }
+
+      setYLim(yExtent);
+      setXLim(xExtent);
+      
+
+    }
+    
+  },[loadedData])
+
+
+  return [loadedData,setLoadedData, xLim, setXLim, yLim , setYLim]
+}
+
+
+const ScatterChart =  ({data={},x,y,width=256,height=256}) =>{
 
   //const xRange=d3.extent(data, (datum) => { return datum[x]} );
 
@@ -165,21 +213,86 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
   const marginBottom = 0.1 * height;
 
 
-  const [xRange, setXRange, xScale] = useScale( { range:  [-0.5,0.5] , length : width , axis : "x" });
+  const [loadedData, setLoadedData,xLim,setXLim,yLim,setYLim] = useData(data,x,y);
+
+  const [xRange, setXRange, xScale] = useScale( { range: [-0.5,0.5] , length : width , axis : "x" });
 
   const [yRange, setYRange, yScale] = useScale( { range:  [-0.5,0.5] , length : height , axis : "y" });
 
   const[ mark , setMark ] = useState( { style:  {fill : "red"}, size: 10});
 
+  useEffect(
+    ()=>{
+      setXRange(xLim);
+    } , [xLim]
+  )
+
+  useEffect(
+    ()=>{
+      setYRange(yLim);
+    } , [yLim]
+  )
+
+
+  const loadData = (filename, callback = () =>{} ) =>
+  {
+    setFileName(filename);
+
+    if (filename === "")
+    {
+      setLoadedData( [] );
+      callback();
+    }
+    else
+    {
+    
+    d3.dsv(" ",filename).then (
+      (data)=>{
+
+        setLoadedData(data);
+        callback();
+      })
+      .catch(e =>
+      {
+        console.log("Failed do load data");
+        setLoadedData([]);
+        callback();
+      } );
+    
+    
+  }
+  
+  
+
+  }
+
 /*   const setMark = (settings) =>
   {
     const newMark = Object.assign(mark,settings);
     setMarkRaw(newMark);
-  } */
+  }
+*/
 
   const [alpha,setAlpha] = useState(1.);
+  const [fileName,setFileName] = useState("");
 
+
+  const [showXGrid, setShowXGrid] = useState(false);
+  const [showYGrid, setShowYGrid] = useState(false);
   
+  const xInnerTickWidth =  useMemo( ()=>{
+
+    return showXGrid  ? height : 0 ;
+
+  },[showXGrid])
+
+
+  const yInnerTickWidth =  useMemo( ()=>{
+
+    return showYGrid  ? width : 0 ;
+
+  },[showYGrid])
+
 
 
   return  <div>
@@ -188,12 +301,12 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
   <svg width={width + marginRight + marginLeft} height={height + marginTop + marginBottom}>
 
   <g   transform={`translate( ${marginLeft},${marginTop } )`}>
-  <Axis scale={yScale} orientation="left" innerTickWidth= {width}
+  <Axis scale={yScale} orientation="left" innerTickWidth= {yInnerTickWidth}
    />
   </g>
 
   <g transform={`translate( ${marginLeft},${marginTop + height} )`}>
-  <Axis scale={xScale} orientation="bottom" innerTickWidth= {0}
+  <Axis scale={xScale} orientation="bottom" innerTickWidth= {xInnerTickWidth}
    />
   </g>
 
@@ -201,7 +314,7 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
 
    <div style={{position: "absolute",left: marginLeft,top : marginTop}} >
      <ThreeCanvas width={width} height={height} >
-        <ScatterPlot data={data} x={x} y={y} xRange={ xRange} yRange={yRange} alpha={alpha} mark={ mark}/>
+        <ScatterPlot data={loadedData} x={x} y={y} xRange={ xRange} yRange={yRange} alpha={alpha} mark={ mark}/>
       </ThreeCanvas>
   </div>
 
@@ -209,8 +322,19 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
    </div>
 
    <div style={{top: height + marginTop + marginBottom + 10,position: "absolute",left : marginLeft}}>
-     <AxisControl axis="x" range={xRange} setRange={setXRange } />
-     <AxisControl axis="y" range={yRange} setRange={setYRange } />
+     <ReadData 
+       fileName={fileName}
+       setFileName={loadData} 
+     ></ReadData>
+     <AxisControl axis="x" range={xRange} setRange={setXRange } lim={xLim} 
+     showGrid = {showXGrid}
+      setShowGid = {setShowXGrid}
+
+     />
+     <AxisControl axis="y" range={yRange} 
+     setRange={setYRange } lim={yLim} 
+     showGrid = {showYGrid} setShowGid = {setShowYGrid}
+     />
      <StyleControl 
      mark={mark} setMark={setMark}
       alpha={alpha} setAlpha={setAlpha}
@@ -224,7 +348,49 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
 } ;
 
 
+const ReadData =({fileName,setFileName}) =>
+{
 
+  const inputValue = useRef(null);
+
+  const [isLoading , setIsLoading] = useState(false);
+
+  return <Row gutter={10}>
+
+    <Col>
+    Input : 
+    </Col>
+
+    <Col>
+      <Input ref={inputValue} defaultValue={fileName} 
+      />
+    </Col>
+
+    <Col>
+      <Button
+        onClick={()=>{
+          setIsLoading(true);
+
+          const notifyEndLoading = ( ) => {setIsLoading(false);console.log("end"); }
+          const newFileName = inputValue.current.state.value;
+
+
+          setFileName(newFileName,notifyEndLoading);
+        
+        }}
+      
+      >Load </Button>
+    </Col>
+        <Col>
+        {
+          isLoading && <LoadingOutlined /> 
+        }
+        
+        </Col>
+
+    </Row>
+  
+}
 
 
 
@@ -233,14 +399,20 @@ const ScatterChart =  ({data,x,y,width=256,height=256}) =>{
 
 const renderMainScene = () =>
 {
-  const data=createMockData(1000);
-  console.log("createdData");
-  ReactDOM.render(
-       <ScatterChart data={data} x={"x"}  y={"y"}width={600} height={200}  ></ScatterChart> ,
-    document.getElementById('app')
-  );
+  const data=createMockData(0);
+
+  const filename = "mockData.dat"
 
   
+
+
+  ReactDOM.render(
+      <ScatterChart data={data} x={"x"}  y={"y"}width={600} height={200}  ></ScatterChart> ,
+   document.getElementById('app')
+    
+    
+    );
+
 };
 
 export default renderMainScene; 

@@ -20,7 +20,7 @@ const useSprite=(filename) =>
 
 const usePositionsBuffer= (data,x,y) =>
 {
-
+  
   const positions = useMemo( ()=>{
 
     const extractedPositions= data.map( (row)=> {return [row[x],row[y],0]} );
@@ -28,6 +28,7 @@ const usePositionsBuffer= (data,x,y) =>
     return  new Float32Array(extractedPositions.flat());
 
   }, [data,x,y]);
+
 
   return positions;
 
@@ -41,7 +42,6 @@ const Dot= ({width=256, height=256, shape="circle" , style={}}) =>
     return <circle cx={width/2} cy={height/2} r={width/2.}style={style}></circle>
   }  
 }
-
 
 const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
 {
@@ -57,6 +57,7 @@ const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
     }
     img.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(svgURL);
   }
+
 
   const node = document.createElement("DIV");
 
@@ -82,18 +83,8 @@ const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
         });
     })
     ;
-
-    
-   
-
-   
-
-
-
-
   
 }
-
 
 
 
@@ -107,14 +98,12 @@ const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5
   const xscale =  1. / ( xRange[1] - xRange[0] ) ;
   const yscale = 1. / (yRange[1] - yRange[0]);
 
-
   scene.position.x =  -xRange[0]*xscale - 0.5;
   
   scene.scale.x = xscale;
 
   scene.position.y =  -yRange[0]*yscale - 0.5;
   scene.scale.y = yscale;
-
 
   useLayoutEffect( ()=>{
 
@@ -138,13 +127,13 @@ const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5
     render(scene);
 
     }
-    
+    console.log("scene");
     
     svgToTexture({callback: createScatterPlot,dot : <Dot  {...mark}  /> });
    
 
 
-  },[mark,alpha])
+  },[mark,alpha,data])
     
     render(scene);
 
