@@ -9,21 +9,42 @@ const useRenderer=({width,height})=>
     const canvasRef = useRef(null);
     let camera = useMemo( ()=>{return null} ,[] );
     let renderer = useMemo( ()=>{return null} ,[] );
+    const scenes =  useMemo( ()=>{return null} ,[] );
+
 
     const render=useCallback( (sceneToRender) => 
     {
 
       if (  (renderer !== null) && (camera !== null) )
       {
-        console.log("render");
+        console.log("rendering scene");
         renderer.render(sceneToRender,camera);
       }
   } ,[camera,renderer])
 
-  
+    const clear=useCallback( (sceneToRender) => 
+        {
+
+      if (  (renderer !== null) && (camera !== null) )
+      {
+      
+       renderer.clear()
+      }
+        } ,[camera,renderer])
+
+        
+    const setScene= (index,scene)=>
+    {
+      scene[index] = scene;
+
+    }
+
+
   useLayoutEffect( ()=> {
 
     const newRenderer = new THREE.WebGLRenderer({canvas: canvasRef.current,alpha: true});
+
+    newRenderer.autoClear=false;
 
     newRenderer.setPixelRatio( window.devicePixelRatio );
     newRenderer.setSize( width, height );
@@ -38,20 +59,19 @@ const useRenderer=({width,height})=>
     renderer = newRenderer;
     camera = newCamera;
     
-    console.log("builtRendered");
+    
 
   },[]);
 
-
-  return [canvasRef,render];
+  return [canvasRef,render,clear];
 
 }
 
 const useThreeRenderer =  ( width=256,height=256) =>
 {
-  const [canvasRef, render ] = useRenderer({width,height});
+  const [canvasRef, render,clear ] = useRenderer({width,height});
 
-  return [canvasRef,render]
+  return [canvasRef,render,clear]
 
 };
 
@@ -59,14 +79,17 @@ const useThreeRenderer =  ( width=256,height=256) =>
 const ThreeCanvas = ( {width=256,height=256 , children }) =>
 {
 
-  const [canvasRef,render] = useThreeRenderer(width=width,height=height);
+  const [canvasRef,render,clear] = useThreeRenderer(width=width,height=height);
 
-  console.log("parent-render");
+
+
+  clear();
+  console.log("clear")
   
   return <div className="webgl-plot-area">
     <canvas width={width} height={height} ref={canvasRef} />
     {  
-      React.Children.map( children, (child)=>{return React.cloneElement(child,{render});})
+      React.Children.map( children, (child,index)=>{return React.cloneElement(child,{render,index});})
     }
 
 

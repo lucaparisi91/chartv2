@@ -2,7 +2,7 @@ import React, { Component , useEffect, useRef, useState, useLayoutEffect, useMem
 import ReactDOM, { unstable_renderSubtreeIntoContainer } from 'react-dom';
 import * as d3 from "d3";
 import * as THREE from 'three';
-import { ExtrudeBufferGeometry } from 'three';
+
 
 const useSprite=(filename) =>
 {
@@ -20,10 +20,32 @@ const useSprite=(filename) =>
 
 const usePositionsBuffer= (data,x,y) =>
 {
-  
+  /*
+    Moves the data in an xyz array buffer. Filters out invalid numbers.
+  */
   const positions = useMemo( ()=>{
+    
+    let extractedPositions= data.map( (row)=> {return [row[x],row[y],0]} );
 
-    const extractedPositions= data.map( (row)=> {return [row[x],row[y],0]} );
+    const isValidNumber= (n) =>
+      {
+        if ( !isNaN(n) && n!== undefined )
+        {
+          return true;
+        } 
+        else
+        {return false;}
+      }
+     
+    extractedPositions=extractedPositions.filter( (row) => 
+    {
+      return isValidNumber(row[0]) && isValidNumber(row[1]);
+    });
+
+    extractedPositions.minFilter
+    // filter out invalid positions
+
+    
     
     return  new Float32Array(extractedPositions.flat());
 
@@ -63,7 +85,6 @@ const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
 
   //document.querySelector("body").appendChild(node);
   const dotClone = React.cloneElement(dot,{width : width, height : height});
-  console.log("render-text")
   ReactDOM.render(
   <div>
   <svg width={width} height={height} >
@@ -84,7 +105,7 @@ const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
     })
     ;
   
-}
+  }
 
 
 
@@ -127,16 +148,17 @@ const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5
     render(scene);
 
     }
-    console.log("scene");
-    
+
     svgToTexture({callback: createScatterPlot,dot : <Dot  {...mark}  /> });
    
 
 
-  },[mark,alpha,data])
+  },[mark,alpha,data,x,y])
     
     render(scene);
-
+    console.log("rerender scatterPlot");
+    console.log(mark.style);
+    
     return <div className="scatterPlot"/>;
   }
 
