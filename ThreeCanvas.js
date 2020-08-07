@@ -1,4 +1,4 @@
-import React, { Component , useEffect, useRef, useState, useLayoutEffect, useMemo, useCallback} from 'react';
+import React, { Component , useEffect, useRef, useState, useLayoutEffect, useMemo, useCallback, cloneElement} from 'react';
 import ReactDOM, { unstable_renderSubtreeIntoContainer } from 'react-dom';
 import * as d3 from "d3";
 import * as THREE from 'three';
@@ -9,16 +9,16 @@ const useRenderer=({width,height})=>
     const canvasRef = useRef(null);
     let camera = useMemo( ()=>{return null} ,[] );
     let renderer = useMemo( ()=>{return null} ,[] );
-    const scenes =  useMemo( ()=>{return null} ,[] );
-
-
-    const render=useCallback( (sceneToRender) => 
+    const scenes =  useMemo( ()=>{return new Map() },[] );
+    const mainScene = useMemo( ()=>{ return new THREE.Scene() } , [] );
+    
+    const render=useCallback( () => 
     {
 
       if (  (renderer !== null) && (camera !== null) )
       {
-        console.log("rendering scene");
-        renderer.render(sceneToRender,camera);
+        
+        renderer.render(mainScene,camera);
       }
   } ,[camera,renderer])
 
@@ -27,16 +27,24 @@ const useRenderer=({width,height})=>
 
       if (  (renderer !== null) && (camera !== null) )
       {
-      
        renderer.clear()
       }
         } ,[camera,renderer])
 
-        
+
     const setScene= (index,scene)=>
     {
-      scene[index] = scene;
+      scenes.set(index, scene);
+      
 
+      while(mainScene.children.length > 0){ 
+        mainScene.remove(mainScene.children[0]); 
+      }
+
+       for ( let [index,scene] of scenes)
+      {
+        mainScene.add(scene);
+      } 
     }
 
 
@@ -44,7 +52,7 @@ const useRenderer=({width,height})=>
 
     const newRenderer = new THREE.WebGLRenderer({canvas: canvasRef.current,alpha: true});
 
-    newRenderer.autoClear=false;
+    newRenderer.autoClear=true;
 
     newRenderer.setPixelRatio( window.devicePixelRatio );
     newRenderer.setSize( width, height );
@@ -63,15 +71,15 @@ const useRenderer=({width,height})=>
 
   },[]);
 
-  return [canvasRef,render,clear];
+  return [canvasRef,render,clear,setScene];
 
 }
 
 const useThreeRenderer =  ( width=256,height=256) =>
 {
-  const [canvasRef, render,clear ] = useRenderer({width,height});
+  const [canvasRef, render,clear ,addToScene] = useRenderer({width,height});
 
-  return [canvasRef,render,clear]
+  return [canvasRef,render,clear,addToScene]
 
 };
 
@@ -79,17 +87,20 @@ const useThreeRenderer =  ( width=256,height=256) =>
 const ThreeCanvas = ( {width=256,height=256 , children }) =>
 {
 
-  const [canvasRef,render,clear] = useThreeRenderer(width=width,height=height);
+  const [canvasRef,render,clear,addToScene] = useThreeRenderer(width=width,height=height);
 
 
+  useEffect ( () =>
+  {
+    render();
+  });
 
-  clear();
-  console.log("clear")
+
   
   return <div className="webgl-plot-area">
     <canvas width={width} height={height} ref={canvasRef} />
     {  
-      React.Children.map( children, (child,index)=>{return React.cloneElement(child,{render,index});})
+      React.Children.map( children, (child,index)=>{return React.cloneElement(child,{render, addToScene : (scene)=>{addToScene(child.key,scene) } });})
     }
 
 

@@ -3,7 +3,6 @@ import ReactDOM, { unstable_renderSubtreeIntoContainer } from 'react-dom';
 import * as d3 from "d3";
 import * as THREE from 'three';
 
-
 const useSprite=(filename) =>
 {
   const sprite= useMemo(()=>{
@@ -110,7 +109,7 @@ const svgToTexture=({callback,width=256,height=256,dot=<Dot />}) =>
 
 
 /* Returns a scatter plot with circle sprites */
-const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5] , yRange=[-0.5,0.5] , alpha=1. , mark = {}}  ) =>
+const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5] , yRange=[-0.5,0.5] , alpha=1. , mark = {}, addToScene}  ) =>
 {
 
   const positions = usePositionsBuffer(data,x,y);
@@ -145,20 +144,27 @@ const ScatterPlot = ( {data,render,x,y,filename="./circle.png",xRange= [-0.5,0.5
         scene.remove(scene.children[0]); 
     }
       scene.add(scatterPlot);
-    render(scene);
+
+      addToScene(scene);
+      render();
 
     }
 
+
     svgToTexture({callback: createScatterPlot,dot : <Dot  {...mark}  /> });
-   
 
 
   },[mark,alpha,data,x,y])
-    
-    render(scene);
-    console.log("rerender scatterPlot");
-    console.log(mark.style);
-    
+
+
+  useEffect( ()=>{
+
+    return () =>{
+     addToScene(new THREE.Scene()) 
+    }
+  },[])
+
+    render();
     return <div className="scatterPlot"/>;
   }
 

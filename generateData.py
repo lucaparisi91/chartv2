@@ -15,7 +15,7 @@ def generateData(size=1000,sigma=0.1):
 
 
 if __name__ == "__main__":
-    data=generateData(size=100,sigma=0.05)
+    data=generateData(size=100000,sigma=0.05)
     data.to_csv("mockData.dat",sep=" ")
     plt.plot(data["x"],data["y"],"or")
     plt.show()

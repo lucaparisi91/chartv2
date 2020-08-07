@@ -346,8 +346,6 @@ const ScatterChart =  ({data={},x,y,width=256,height=256,file=""}) =>{
 
     const newMarks = new Map(marks);
 
-    console.log(newYLabels);
-
 
     
     for ( let label of newYLabels )
